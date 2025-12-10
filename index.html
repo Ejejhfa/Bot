@@ -1,0 +1,462 @@
+import React, { useState, useEffect } from 'react';
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts';
+import { TrendingUp, Target, Award, Menu, X, Plus, Flame, Dumbbell, Download, BarChart3 } from 'lucide-react';
+
+const BodyTrackr = () => {
+  const [darkMode, setDarkMode] = useState(true);
+  const [currentView, setCurrentView] = useState('dashboard');
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [showAddEntry, setShowAddEntry] = useState(false);
+  const [isPremium, setIsPremium] = useState(false);
+  const [streak, setStreak] = useState(7);
+  const [showInstallPrompt, setShowInstallPrompt] = useState(true);
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  
+  const [entries, setEntries] = useState([
+    { date: '2025-12-03', weight: 85, bodyFat: 22, waist: 95, chest: 105, energy: 7, mood: 7, goal: 'cut' },
+    { date: '2025-12-04', weight: 84.8, bodyFat: 21.8, waist: 94.5, chest: 105, energy: 8, mood: 8, goal: 'cut' },
+    { date: '2025-12-05', weight: 84.5, bodyFat: 21.5, waist: 94, chest: 105.5, energy: 7, mood: 7, goal: 'cut' },
+    { date: '2025-12-06', weight: 84.3, bodyFat: 21.3, waist: 93.5, chest: 106, energy: 8, mood: 9, goal: 'cut' },
+    { date: '2025-12-07', weight: 84, bodyFat: 21, waist: 93, chest: 106, energy: 9, mood: 8, goal: 'cut' },
+    { date: '2025-12-08', weight: 83.8, bodyFat: 20.8, waist: 92.5, chest: 106.5, energy: 8, mood: 8, goal: 'cut' },
+    { date: '2025-12-09', weight: 83.5, bodyFat: 20.5, waist: 92, chest: 107, energy: 9, mood: 9, goal: 'cut' },
+    { date: '2025-12-10', weight: 83.2, bodyFat: 20.3, waist: 91.5, chest: 107, energy: 9, mood: 9, goal: 'cut' },
+  ]);
+
+  const [newEntry, setNewEntry] = useState({
+    date: new Date().toISOString().split('T')[0],
+    weight: '',
+    bodyFat: '',
+    waist: '',
+    chest: '',
+    hips: '',
+    arms: '',
+    legs: '',
+    energy: 5,
+    mood: 5,
+    goal: 'cut'
+  });
+
+  const [userProfile] = useState({
+    name: 'Alex',
+    height: 180,
+    age: 28,
+    startWeight: 85,
+    targetWeight: 78,
+    goal: 'cut'
+  });
+
+  useEffect(() => {
+    const handler = (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setShowInstallPrompt(true);
+    };
+    
+    window.addEventListener('beforeinstallprompt', handler);
+    
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) {
+      alert('Je kunt deze app al installeren via je browser menu (Share > Add to Home Screen)');
+      return;
+    }
+    
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    
+    if (outcome === 'accepted') {
+      setShowInstallPrompt(false);
+    }
+    
+    setDeferredPrompt(null);
+  };
+
+  const calculateBMI = (weight, height) => {
+    return (weight / ((height / 100) ** 2)).toFixed(1);
+  };
+
+  const getLatestEntry = () => entries[entries.length - 1] || {};
+  const latestEntry = getLatestEntry();
+  const currentBMI = calculateBMI(latestEntry.weight || 85, userProfile.height);
+  const weightLoss = userProfile.startWeight - (latestEntry.weight || 85);
+
+  const addNewEntry = () => {
+    if (newEntry.weight && newEntry.bodyFat) {
+      setEntries([...entries, { ...newEntry }]);
+      setNewEntry({
+        date: new Date().toISOString().split('T')[0],
+        weight: '',
+        bodyFat: '',
+        waist: '',
+        chest: '',
+        hips: '',
+        arms: '',
+        legs: '',
+        energy: 5,
+        mood: 5,
+        goal: 'cut'
+      });
+      setShowAddEntry(false);
+      setStreak(streak + 1);
+    }
+  };
+
+  const DashboardView = () => (
+    <div className="space-y-6 pb-24 md:pb-6">
+      {showInstallPrompt && (
+        <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-4 text-white shadow-lg">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Download className="w-6 h-6" />
+              <div>
+                <p className="font-bold">Installeer de BodyTrackr App</p>
+                <p className="text-sm text-blue-100">Krijg snelle toegang vanaf je home screen</p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={handleInstallClick}
+                className="bg-white text-blue-600 px-4 py-2 rounded-lg font-bold text-sm hover:bg-blue-50 transition"
+              >
+                Installeer
+              </button>
+              <button
+                onClick={() => setShowInstallPrompt(false)}
+                className="text-white hover:bg-white hover:bg-opacity-20 p-2 rounded-lg transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+        <div className={`${darkMode ? 'bg-gradient-to-br from-blue-600 to-blue-700' : 'bg-gradient-to-br from-blue-500 to-blue-600'} rounded-2xl p-4 md:p-6 text-white shadow-lg`}>
+          <div className="flex items-center justify-between mb-2">
+            <Flame className="w-6 h-6 md:w-8 md:h-8" />
+            <span className="text-2xl md:text-3xl font-bold">{streak}</span>
+          </div>
+          <p className="text-blue-100 text-xs md:text-sm">Dag Streak</p>
+        </div>
+        
+        <div className={`${darkMode ? 'bg-gradient-to-br from-purple-600 to-purple-700' : 'bg-gradient-to-br from-purple-500 to-purple-600'} rounded-2xl p-4 md:p-6 text-white shadow-lg`}>
+          <div className="flex items-center justify-between mb-2">
+            <TrendingUp className="w-6 h-6 md:w-8 md:h-8" />
+            <span className="text-2xl md:text-3xl font-bold">{weightLoss.toFixed(1)}kg</span>
+          </div>
+          <p className="text-purple-100 text-xs md:text-sm">Verloren</p>
+        </div>
+        
+        <div className={`${darkMode ? 'bg-gradient-to-br from-green-600 to-green-700' : 'bg-gradient-to-br from-green-500 to-green-600'} rounded-2xl p-4 md:p-6 text-white shadow-lg`}>
+          <div className="flex items-center justify-between mb-2">
+            <Target className="w-6 h-6 md:w-8 md:h-8" />
+            <span className="text-2xl md:text-3xl font-bold">{latestEntry.bodyFat}%</span>
+          </div>
+          <p className="text-green-100 text-xs md:text-sm">Vetpercentage</p>
+        </div>
+        
+        <div className={`${darkMode ? 'bg-gradient-to-br from-orange-600 to-orange-700' : 'bg-gradient-to-br from-orange-500 to-orange-600'} rounded-2xl p-4 md:p-6 text-white shadow-lg`}>
+          <div className="flex items-center justify-between mb-2">
+            <Award className="w-6 h-6 md:w-8 md:h-8" />
+            <span className="text-2xl md:text-3xl font-bold">{currentBMI}</span>
+          </div>
+          <p className="text-orange-100 text-xs md:text-sm">BMI</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <button
+          onClick={() => setShowAddEntry(true)}
+          className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl p-4 flex items-center justify-center gap-2 font-bold transition shadow-lg"
+        >
+          <Plus className="w-5 h-5" />
+          Nieuwe Meting
+        </button>
+        <button
+          onClick={() => setCurrentView('premium')}
+          className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-xl p-4 flex items-center justify-center gap-2 font-bold transition shadow-lg"
+        >
+          <Award className="w-5 h-5" />
+          Premium
+        </button>
+      </div>
+
+      <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-2xl p-4 md:p-6 shadow-lg`}>
+        <div className="flex items-center justify-between mb-4 md:mb-6">
+          <h2 className={`text-lg md:text-xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>Gewicht Vooruitgang</h2>
+          <select className={`${darkMode ? 'bg-gray-700 text-white' : 'bg-gray-100 text-gray-900'} px-3 py-1.5 md:px-4 md:py-2 rounded-lg text-sm`}>
+            <option>7 Dagen</option>
+            <option>30 Dagen</option>
+            <option>3 Maanden</option>
+          </select>
+        </div>
+        <ResponsiveContainer width="100%" height={250}>
+          <AreaChart data={entries}>
+            <defs>
+              <linearGradient id="colorWeight" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
+                <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? '#374151' : '#e5e7eb'} />
+            <XAxis dataKey="date" stroke={darkMode ? '#9ca3af' : '#6b7280'} tick={{fontSize: 12}} />
+            <YAxis stroke={darkMode ? '#9ca3af' : '#6b7280'} tick={{fontSize: 12}} />
+            <Tooltip contentStyle={{ backgroundColor: darkMode ? '#1f2937' : '#ffffff', border: 'none', borderRadius: '8px' }} />
+            <Area type="monotone" dataKey="weight" stroke="#3b82f6" fillOpacity={1} fill="url(#colorWeight)" />
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+        <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-2xl p-4 md:p-6 shadow-lg`}>
+          <h2 className={`text-lg md:text-xl font-bold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'}`}>Vetpercentage Trend</h2>
+          <ResponsiveContainer width="100%" height={200}>
+            <LineChart data={entries}>
+              <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? '#374151' : '#e5e7eb'} />
+              <XAxis dataKey="date" stroke={darkMode ? '#9ca3af' : '#6b7280'} tick={{fontSize: 12}} />
+              <YAxis stroke={darkMode ? '#9ca3af' : '#6b7280'} tick={{fontSize: 12}} />
+              <Tooltip contentStyle={{ backgroundColor: darkMode ? '#1f2937' : '#ffffff', border: 'none', borderRadius: '8px' }} />
+              <Line type="monotone" dataKey="bodyFat" stroke="#10b981" strokeWidth={3} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+
+        <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-2xl p-4 md:p-6 shadow-lg`}>
+          <h2 className={`text-lg md:text-xl font-bold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'}`}>Energie & Stemming</h2>
+          <ResponsiveContainer width="100%" height={200}>
+            <BarChart data={entries}>
+              <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? '#374151' : '#e5e7eb'} />
+              <XAxis dataKey="date" stroke={darkMode ? '#9ca3af' : '#6b7280'} tick={{fontSize: 12}} />
+              <YAxis stroke={darkMode ? '#9ca3af' : '#6b7280'} tick={{fontSize: 12}} />
+              <Tooltip contentStyle={{ backgroundColor: darkMode ? '#1f2937' : '#ffffff', border: 'none', borderRadius: '8px' }} />
+              <Bar dataKey="energy" fill="#f59e0b" />
+              <Bar dataKey="mood" fill="#8b5cf6" />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-2xl p-4 md:p-6 shadow-lg`}>
+        <h2 className={`text-lg md:text-xl font-bold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'}`}>🏆 Mijlpalen</h2>
+        <div className="space-y-3">
+          <div className="flex items-center justify-between p-3 md:p-4 bg-green-500 bg-opacity-10 rounded-lg border-l-4 border-green-500">
+            <div className="flex items-center gap-2 md:gap-3">
+              <Award className="w-5 h-5 md:w-6 md:h-6 text-green-500" />
+              <span className={`text-sm md:text-base ${darkMode ? 'text-white' : 'text-gray-900'}`}>Eerste week voltooid! 🎉</span>
+            </div>
+            <span className="text-green-500 font-bold">✓</span>
+          </div>
+          <div className="flex items-center justify-between p-3 md:p-4 bg-blue-500 bg-opacity-10 rounded-lg border-l-4 border-blue-500">
+            <div className="flex items-center gap-2 md:gap-3">
+              <TrendingUp className="w-5 h-5 md:w-6 md:h-6 text-blue-500" />
+              <span className={`text-sm md:text-base ${darkMode ? 'text-white' : 'text-gray-900'}`}>1.8 kg verloren!</span>
+            </div>
+            <span className="text-blue-500 font-bold">✓</span>
+          </div>
+          <div className="flex items-center justify-between p-3 md:p-4 bg-purple-500 bg-opacity-10 rounded-lg border-l-4 border-purple-400">
+            <div className="flex items-center gap-2 md:gap-3">
+              <Target className="w-5 h-5 md:w-6 md:h-6 text-purple-400" />
+              <span className={`text-sm md:text-base ${darkMode ? 'text-white' : 'text-gray-900'}`}>1.7% vetpercentage gedaald</span>
+            </div>
+            <span className="text-purple-400 font-bold">✓</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const AddEntryView = () => (
+    <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-2xl p-4 md:p-6 shadow-lg max-w-2xl mx-auto mb-24 md:mb-6`}>
+      <h2 className={`text-xl md:text-2xl font-bold mb-4 md:mb-6 ${darkMode ? 'text-white' : 'text-gray-900'}`}>Nieuwe Meting</h2>
+      
+      <div className="space-y-4">
+        <div>
+          <label className={`block mb-2 text-sm ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>Datum</label>
+          <input
+            type="date"
+            value={newEntry.date}
+            onChange={(e) => setNewEntry({...newEntry, date: e.target.value})}
+            className={`w-full px-4 py-3 rounded-lg ${darkMode ? 'bg-gray-700 text-white' : 'bg-gray-100 text-gray-900'}`}
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className={`block mb-2 text-sm ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>Gewicht (kg) *</label>
+            <input
+              type="number"
+              step="0.1"
+              value={newEntry.weight}
+              onChange={(e) => setNewEntry({...newEntry, weight: e.target.value})}
+              className={`w-full px-4 py-3 rounded-lg ${darkMode ? 'bg-gray-700 text-white' : 'bg-gray-100 text-gray-900'}`}
+              placeholder="83.5"
+            />
+          </div>
+          <div>
+            <label className={`block mb-2 text-sm ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>Vet % *</label>
+            <input
+              type="number"
+              step="0.1"
+              value={newEntry.bodyFat}
+              onChange={(e) => setNewEntry({...newEntry, bodyFat: e.target.value})}
+              className={`w-full px-4 py-3 rounded-lg ${darkMode ? 'bg-gray-700 text-white' : 'bg-gray-100 text-gray-900'}`}
+              placeholder="20.5"
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className={`block mb-2 text-sm ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>Middel (cm)</label>
+            <input
+              type="number"
+              step="0.5"
+              value={newEntry.waist}
+              onChange={(e) => setNewEntry({...newEntry, waist: e.target.value})}
+              className={`w-full px-4 py-3 rounded-lg ${darkMode ? 'bg-gray-700 text-white' : 'bg-gray-100 text-gray-900'}`}
+              placeholder="92"
+            />
+          </div>
+          <div>
+            <label className={`block mb-2 text-sm ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>Borst (cm)</label>
+            <input
+              type="number"
+              step="0.5"
+              value={newEntry.chest}
+              onChange={(e) => setNewEntry({...newEntry, chest: e.target.value})}
+              className={`w-full px-4 py-3 rounded-lg ${darkMode ? 'bg-gray-700 text-white' : 'bg-gray-100 text-gray-900'}`}
+              placeholder="107"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className={`block mb-2 text-sm ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>Energie: {newEntry.energy}/10</label>
+          <input
+            type="range"
+            min="1"
+            max="10"
+            value={newEntry.energy}
+            onChange={(e) => setNewEntry({...newEntry, energy: parseInt(e.target.value)})}
+            className="w-full accent-blue-600"
+          />
+        </div>
+
+        <div>
+          <label className={`block mb-2 text-sm ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>Stemming: {newEntry.mood}/10</label>
+          <input
+            type="range"
+            min="1"
+            max="10"
+            value={newEntry.mood}
+            onChange={(e) => setNewEntry({...newEntry, mood: parseInt(e.target.value)})}
+            className="w-full accent-purple-600"
+          />
+        </div>
+
+        <div>
+          <label className={`block mb-2 text-sm ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>Doel</label>
+          <select
+            value={newEntry.goal}
+            onChange={(e) => setNewEntry({...newEntry, goal: e.target.value})}
+            className={`w-full px-4 py-3 rounded-lg ${darkMode ? 'bg-gray-700 text-white' : 'bg-gray-100 text-gray-900'}`}
+          >
+            <option value="cut">Cut (Vet verliezen)</option>
+            <option value="bulk">Bulk (Massa opbouwen)</option>
+            <option value="recomp">Recomp (Body recomposition)</option>
+          </select>
+        </div>
+
+        <div className="flex gap-3 pt-4">
+          <button
+            onClick={addNewEntry}
+            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition"
+          >
+            Opslaan
+          </button>
+          <button
+            onClick={() => setShowAddEntry(false)}
+            className={`flex-1 ${darkMode ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-gray-200 hover:bg-gray-300 text-gray-900'} font-bold py-3 px-6 rounded-lg transition`}
+          >
+            Annuleren
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  const PremiumView = () => (
+    <div className="max-w-4xl mx-auto space-y-6 pb-24 md:pb-6">
+      <div className={`${darkMode ? 'bg-gradient-to-br from-purple-600 to-blue-600' : 'bg-gradient-to-br from-purple-500 to-blue-500'} rounded-2xl p-6 md:p-8 text-white text-center`}>
+        <Award className="w-12 h-12 md:w-16 md:h-16 mx-auto mb-4" />
+        <h2 className="text-2xl md:text-3xl font-bold mb-2">BodyTrackr Premium</h2>
+        <p className="text-base md:text-lg opacity-90">Unlock alle features</p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+        <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-2xl p-4 md:p-6 shadow-lg border-2 ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+          <h3 className={`text-lg md:text-xl font-bold mb-3 md:mb-4 ${darkMode ? 'text-white' : 'text-gray-900'}`}>Maandelijks</h3>
+          <div className="text-3xl md:text-4xl font-bold text-blue-500 mb-2">€4,99</div>
+          <p className={`${darkMode ? 'text-gray-400' : 'text-gray-600'} text-sm mb-4 md:mb-6`}>per maand</p>
+          <ul className="space-y-2 md:space-y-3 mb-4 md:mb-6">
+            <li className="flex items-center gap-2 text-sm md:text-base">
+              <span className="text-green-500">✓</span>
+              <span className={darkMode ? 'text-gray-300' : 'text-gray-700'}>AI Foto Analyse</span>
+            </li>
+            <li className="flex items-center gap-2 text-sm md:text-base">
+              <span className="text-green-500">✓</span>
+              <span className={darkMode ? 'text-gray-300' : 'text-gray-700'}>Workout Schema's</span>
+            </li>
+            <li className="flex items-center gap-2 text-sm md:text-base">
+              <span className="text-green-500">✓</span>
+              <span className={darkMode ? 'text-gray-300' : 'text-gray-700'}>Macro Planner</span>
+            </li>
+            <li className="flex items-center gap-2 text-sm md:text-base">
+              <span className="text-green-500">✓</span>
+              <span className={darkMode ? 'text-gray-300' : 'text-gray-700'}>Data Export</span>
+            </li>
+          </ul>
+          <button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition text-sm md:text-base">
+            Kies Maandelijks
+          </button>
+        </div>
+
+        <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-2xl p-4 md:p-6 shadow-lg border-2 border-purple-500 relative`}>
+          <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-purple-500 text-white px-3 py-1 rounded-full text-xs font-bold">
+            BESTE DEAL
+          </div>
+          <h3 className={`text-lg md:text-xl font-bold mb-3 md:mb-4 ${darkMode ? 'text-white' : 'text-gray-900'}`}>Jaarlijks</h3>
+          <div className="text-3xl md:text-4xl font-bold text-purple-500 mb-2">€29,99</div>
+          <p className={`${darkMode ? 'text-gray-400' : 'text-gray-600'} text-sm mb-1 md:mb-2`}>per jaar</p>
+          <p className="text-green-500 font-bold mb-4 md:mb-6 text-sm">Bespaar €30!</p>
+          <ul className="space-y-2 md:space-y-3 mb-4 md:mb-6">
+            <li className="flex items-center gap-2 text-sm md:text-base">
+              <span className="text-green-500">✓</span>
+              <span className={darkMode ? 'text-gray-300' : 'text-gray-700'}>Alle Premium Features</span>
+            </li>
+            <li className="flex items-center gap-2 text-sm md:text-base">
+              <span className="text-green-500">✓</span>
+              <span className={darkMode ? 'text-gray-300' : 'text-gray-700'}>Priority Support</span>
+            </li>
+            <li className="flex items-center gap-2 text-sm md:text-base">
+              <span className="text-green-500">✓</span>
+              <span className={darkMode ? 'text-gray-300' : 'text-gray-700'}>Early Access</span>
+            </li>
+            <li className="flex items-center gap-2 text-sm md:text-base">
+              <span className="text-green-500">✓</span>
+              <span className={darkMode ? 'text-gray-300' : 'text-gray-700'}>Custom Meal Plans</span>
+            </li>
+          </ul>
+          <button className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-lg transition text-sm md:text-base">
+            Kies Jaarlijks
+          </button>
+        </div>
+      </div>
+
+      <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-2xl p-4 md:p-6 shadow-lg`}>
+        <h3 className={`text-base md:text-lg font-bold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'}`}>Betaalmethodes</h3>
+        <div className="
